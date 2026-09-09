@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>今天吃什么</title>
+<style>
+  :root {
+    --bg: #faf6f0;          /* 奶油底色 */
+    --card: #ffffff;
+    --text: #4a4238;        /* 暖深色文字 */
+    --text-light: #a09382;
+    --line: #eee4d6;
+    --primary: #f29a6d;     /* 柔和橙 */
+    --primary-deep: #e8844f;
+    --sage: #8fa98f;        /* 柔和绿 */
+    --sage-deep: #7a947a;
+    --danger: #d98e8e;
+    --danger-bg: #fbecec;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 32px 16px;
+    padding-bottom: calc(32px + env(safe-area-inset-bottom));
+  }
+
+  .app {
+    width: 100%;
+    max-width: 560px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  header h1 {
+    font-size: 28px;
+    letter-spacing: 2px;
+  }
+  .sub {
+    color: var(--text-light);
+    margin-top: 6px;
+    font-size: 14px;
+  }
+
+  .panel {
+    background: var(--card);
+    border-radius: 20px;
+    box-shadow: 0 8px 24px rgba(74, 66, 56, .07);
+    padding: 20px;
+  }
+  .list-panel {
+    margin-top: 16px;
+  }
+
+  /* ---------- 添加区 ---------- */
+  .add-row {
+    display: flex;
+    gap: 10px;
+  }
+  .text-input {
+    flex: 1;
+    min-width: 0;
+    min-height: 50px;
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    padding: 0 14px;
+    font-size: 16px; /* 16px 可避免 iOS 聚焦时自动放大 */
+    color: var(--text);
+    background: #fff;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .text-input:focus {
+    border-color: var(--primary);
+  }
+  .text-input::placeholder {
+    color: #c5b8a6;
+  }
+  #descInput {
+    margin-top: 10px;
+  }
+  .add-btn {
+    min-width: 84px;
+    min-height: 50px;
+    border: none;
+    border-radius: 12px;
+    background: var(--sage);
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+    transition: background .2s;
+  }
+  .add-btn:active {
+    background: var(--sage-deep);
+  }
+
+  /* ---------- 抽取按钮 ---------- */
+  .pick-btn {
+    width: 100%;
+    min-height: 58px;
+    margin-top: 14px;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f6b083, var(--primary-deep));
+    color: #fff;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+    box-shadow: 0 6px 16px rgba(232, 132, 79, .35);
+    transition: transform .1s, box-shadow .1s;
+  }
+  .pick-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 3px 8px rgba(232, 132, 79, .3);
+  }
+  .pick-btn:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+  }
+
+  /* ---------- 结果展示 ---------- */
+  .result {
+    margin-top: 16px;
+    border: 2px dashed var(--line);
+    border-radius: 14px;
+    padding: 24px 16px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: all .3s;
+  }
+  .result-label {
+    font-size: 14px;
+    color: var(--text-light);
+  }
+  .result-name {
+    font-size: 26px;
+    font-weight: 700;
+    word-break: break-all;
+  }
+  .result-desc {
+    display: none;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text-light);
+    word-break: break-all;
+  }
+  /* 已抽中：高亮展示 */
+  .result.filled {
+    border-style: solid;
+    border-color: transparent;
+    background: linear-gradient(135deg, #fdf0e4, #fbe3cf);
+  }
+  .result.filled .result-label {
+    color: #c98b63;
+  }
+  .result.filled .result-name {
+    color: var(--primary-deep);
+  }
+  .result.filled .result-desc {
+    color: #b9835e;
+  }
+  /* 滚动抽选时轻微缩放 */
+  .result.rolling {
+    opacity: .75;
+    transform: scale(.97);
+  }
+  @keyframes pop {
+    0%   { transform: scale(.8);  opacity: .4; }
+    60%  { transform: scale(1.08); }
+    100% { transform: scale(1);    opacity: 1; }
+  }
+  .result-name.pop,
+  .result-desc.pop {
+    animation: pop .5s ease;
+  }
+
+  /* ---------- 清单区 ---------- */
+  .list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .list-header h2 {
+    font-size: 17px;
+  }
+  .count {
+    font-size: 13px;
+    color: var(--text-light);
+    background: var(--bg);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .dish-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .dish-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: #fbf7f1;
+    border-radius: 12px;
+    padding: 10px 10px 10px 16px;
+    animation: slideIn .25s ease;
+  }
+  /* 悬浮预览简介 */
+  .dish-item[data-desc]::after {
+    content: attr(data-desc);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 12px;
+    max-width: 85%;
+    background: rgba(74, 66, 56, .92);
+    color: #fff;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 8px 12px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(74, 66, 56, .2);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .15s;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .dish-item[data-desc]:hover::after {
+    opacity: 1;
+    visibility: visible;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .dish-left {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+  .dish-name {
+    font-size: 16px;
+    word-break: break-all;
+  }
+  .desc-badge {
+    flex-shrink: 0;
+    margin-left: 8px;
+    font-size: 13px;
+  }
+  .del-btn {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 10px;
+    background: var(--danger-bg);
+    color: var(--danger);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+    transition: background .2s;
+  }
+  .del-btn:active {
+    background: #f6dcdc;
+  }
+  .empty-tip {
+    text-align: center;
+    color: var(--text-light);
+    font-size: 14px;
+    padding: 18px 0 6px;
+  }
+
+  /* ---------- 提示气泡 ---------- */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 48px;
+    transform: translateX(-50%) translateY(16px);
+    background: rgba(74, 66, 56, .92);
+    color: #fff;
+    font-size: 14px;
+    padding: 10px 20px;
+    border-radius: 999px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s, transform .25s;
+    z-index: 10;
+    max-width: 80vw;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>🍜 今天吃什么</h1>
+      <p class="sub">选择困难？交给命运吧</p>
+    </header>
+
+    <section class="panel">
+      <div class="add-row">
+        <input id="dishInput" class="text-input" type="text" placeholder="输入菜品，如：黄焖鸡米饭" maxlength="20" autocomplete="off">
+        <button id="addBtn" class="add-btn">添加</button>
+      </div>
+      <input id="descInput" class="text-input" type="text" placeholder="菜品简介（可选），如：楼下那家最正宗" maxlength="80" autocomplete="off">
+
+      <button id="pickBtn" class="pick-btn">🎲 帮我决定！</button>
+
+      <div id="result" class="result" aria-live="polite">
+        <span class="result-label">点击按钮开始抽取</span>
+        <span id="resultName" class="result-name"></span>
+        <p id="resultDesc" class="result-desc"></p>
+      </div>
+    </section>
+
+    <section class="panel list-panel">
+      <div class="list-header">
+        <h2>菜品清单</h2>
+        <span id="count" class="count">0 道</span>
+      </div>
+      <ul id="dishList" class="dish-list"></ul>
+      <p id="emptyTip" class="empty-tip">还没有菜品，先在上面添加几个吧 🥢</p>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var STORAGE_KEY = 'eatRandomDishes';
+
+  var input     = document.getElementById('dishInput');
+  var descInput = document.getElementById('descInput');
+  var addBtn    = document.getElementById('addBtn');
+  var pickBtn   = document.getElementById('pickBtn');
+  var result    = document.getElementById('result');
+  var label     = result.querySelector('.result-label');
+  var resultName = document.getElementById('resultName');
+  var resultDesc = document.getElementById('resultDesc');
+  var listEl    = document.getElementById('dishList');
+  var countEl   = document.getElementById('count');
+  var emptyTip  = document.getElementById('emptyTip');
+  var toastEl   = document.getElementById('toast');
+
+  var dishes = load();
+  var picking = false;
+  var toastTimer = null;
+
+  /* ---------- 数据持久化 ---------- */
+  function load() {
+    try {
+      var arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      if (!Array.isArray(arr)) return [];
+      // 兼容旧数据：字符串条目转为 {name, desc}
+      return arr
+        .map(function (d) {
+          if (typeof d === 'string') {
+            return { name: d.trim(), desc: '' };
+          }
+          return {
+            name: (d && d.name && String(d.name).trim()) || '',
+            desc: (d && d.desc && String(d.desc).trim()) || ''
+          };
+        })
+        .filter(function (d) { return d.name; });
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dishes));
+  }
+
+  /* ---------- 提示气泡 ---------- */
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      toastEl.classList.remove('show');
+    }, 1800);
+  }
+
+  /* ---------- 结果区 ---------- */
+  function resetResult() {
+    result.classList.remove('filled', 'rolling');
+    label.textContent = '点击按钮开始抽取';
+    resultName.textContent = '';
+    resultDesc.textContent = '';
+    resultDesc.style.display = 'none';
+  }
+
+  /* ---------- 渲染清单 ---------- */
+  function render() {
+    listEl.innerHTML = '';
+    dishes.forEach(function (dish, i) {
+      var li = document.createElement('li');
+      li.className = 'dish-item';
+      if (dish.desc) {
+        li.setAttribute('data-desc', dish.desc);
+      }
+
+      var left = document.createElement('div');
+      left.className = 'dish-left';
+
+      var name = document.createElement('span');
+      name.className = 'dish-name';
+      name.textContent = dish.name;
+      left.appendChild(name);
+
+      if (dish.desc) {
+        var badge = document.createElement('span');
+        badge.className = 'desc-badge';
+        badge.textContent = '📝';
+        left.appendChild(badge);
+      }
+
+      var del = document.createElement('button');
+      del.className = 'del-btn';
+      del.textContent = '✕';
+      del.setAttribute('aria-label', '删除 ' + dish.name);
+      del.addEventListener('click', function () {
+        dishes.splice(i, 1);
+        // 如果删掉的正好是当前展示的结果，清空结果区
+        if (resultName.textContent === dish.name) {
+          resetResult();
+        }
+        save();
+        render();
+      });
+
+      li.appendChild(left);
+      li.appendChild(del);
+      listEl.appendChild(li);
+    });
+
+    countEl.textContent = dishes.length + ' 道';
+    emptyTip.style.display = dishes.length ? 'none' : 'block';
+  }
+
+  /* ---------- 添加菜品 ---------- */
+  function addDish() {
+    var name = input.value.trim();
+    var desc = descInput.value.trim();
+    if (!name) {
+      toast('先输入一个菜品吧');
+      input.focus();
+      return;
+    }
+    var exists = dishes.some(function (d) { return d.name === name; });
+    if (exists) {
+      toast('「' + name + '」已经在清单里啦');
+      input.select();
+      return;
+    }
+    dishes.push({ name: name, desc: desc });
+    save();
+    render();
+    input.value = '';
+    descInput.value = '';
+    input.focus();
+  }
+
+  addBtn.addEventListener('click', addDish);
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') addDish();
+  });
+  descInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') addDish();
+  });
+
+  /* ---------- 随机抽取（带转盘减速效果） ---------- */
+  function pick() {
+    if (picking) return;
+    if (!dishes.length) {
+      toast('清单还是空的，先添加菜品吧');
+      input.focus();
+      return;
+    }
+
+    picking = true;
+    pickBtn.disabled = true;
+    result.classList.add('filled', 'rolling');
+    label.textContent = '🎲 命运抉择中…';
+
+    var tick = 0;
+    var totalTicks = 12;
+
+    // 滚动期间先隐藏简介，结果揭晓时再显示
+    resultDesc.textContent = '';
+    resultDesc.style.display = 'none';
+
+    function step() {
+      // 滚动期间清单被清空的情况
+      if (!dishes.length) {
+        resetResult();
+        picking = false;
+        pickBtn.disabled = false;
+        return;
+      }
+      resultName.textContent = dishes[Math.floor(Math.random() * dishes.length)].name;
+      tick++;
+      if (tick < totalTicks) {
+        // 间隔越来越长，模拟转盘减速
+        setTimeout(step, 45 + tick * tick * 3.5);
+      } else {
+        var final = dishes[Math.floor(Math.random() * dishes.length)];
+        resultName.textContent = final.name;
+        resultDesc.textContent = final.desc;
+        resultDesc.style.display = final.desc ? 'block' : 'none';
+        result.classList.remove('rolling');
+        label.textContent = '🎉 就吃这个';
+        resultName.classList.remove('pop');
+        void resultName.offsetWidth; // 重排以重新触发动画
+        resultName.classList.add('pop');
+        if (final.desc) {
+          resultDesc.classList.remove('pop');
+          void resultDesc.offsetWidth;
+          resultDesc.classList.add('pop');
+        }
+        picking = false;
+        pickBtn.disabled = false;
+      }
+    }
+
+    step();
+  }
+
+  pickBtn.addEventListener('click', pick);
+
+  /* ---------- 初始化 ---------- */
+  render();
+})();
+</script>
+</body>
+</html>
