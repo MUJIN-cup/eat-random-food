@@ -378,26 +378,68 @@
   var toastTimer = null;
 
   /* ---------- 数据持久化 ---------- */
-  function load() {
-    try {
-      var arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      if (!Array.isArray(arr)) return [];
-      // 兼容旧数据：字符串条目转为 {name, desc}
-      return arr
-        .map(function (d) {
-          if (typeof d === 'string') {
-            return { name: d.trim(), desc: '' };
-          }
-          return {
-            name: (d && d.name && String(d.name).trim()) || '',
-            desc: (d && d.desc && String(d.desc).trim()) || ''
-          };
-        })
-        .filter(function (d) { return d.name; });
-    } catch (e) {
-      return [];
+ function load() {
+  try {
+    var arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    // 如果本地没有保存数据，使用默认餐厅列表
+    if(arr === null){
+      arr = [
+        {name:"湘八爷", desc:"首推毛豆烧肉丝、酸菜笋丝盖饭"},
+        {name:"王家小厨", desc:"仁和楼下可送至宿舍"},
+        {name:"跃跃鸡蛋灌饼", desc:"仁和路上"},
+        {name:"胖饺儿", desc:"外卖（比仁和楼下的好吃）"},
+        {name:"变富牛肉饭", desc:"外卖，好吃，20+左右"},
+        {name:"舌尖深耕炒菜20年", desc:"外卖，家常菜"},
+        {name:"谷麦香中式健康菜", desc:"外卖，适合减肥人"},
+        {name:"潮味鲜潮汕汤粉肠粉", desc:"可外卖可堂食（书店街）"},
+        {name:"久喜爆肚面", desc:"可外卖可堂食，辣辣的很带劲"},
+        {name:"杨传老厨", desc:"堂食，东门"},
+        {name:"哈萌小犀牛", desc:"酸奶碗，不甜"},
+        {name:"汴梁徐先生厚切炒酸奶", desc:"外卖"},
+        {name:"范阿坤煲仔饭", desc:"外卖，吃起来比较健康"},
+        {name:"塔斯汀", desc:"实在找不到吃啥了就吃这个吧"},
+        {name:"魏记烧饼", desc:"晚饭可吃，在仁和一条街"},
+        {name:"兰州拉面", desc:"东门附近靠近仁和那家，北"},
+        {name:"广东肠粉", desc:"晚饭可吃，在仁和一条街"},
+        {name:"赵记羊肉鲜汤", desc:"东门附近几百米，羊肉味挺正"},
+        {name:"嘎嘎香东北锅包肉", desc:"仁和一条街，首推锅包肉"},
+        {name:"香葱大饼", desc:"随便吃吃"},
+        {name:"中心食堂石锅拌饭", desc:"好吃且不贵"},
+        {name:"开封板面王", desc:"西门附近"},
+        {name:"西门石锅拌饭", desc:"无外卖，在开封板面王对面往北走"},
+        {name:"香米粒煲仔饭", desc:"西门顺和公寓附近，香！"},
+        {name:"摇滚炒鸡", desc:"西门顺河公寓那条街使劲往外走，黑色牌子"},
+        {name:"张山野云南野山菌炒饭", desc:"外卖，中规中矩"},
+        {name:"阿明煲仔饭", desc:"外卖"},
+        {name:"厚道三明治", desc:"微信群，可送至河大各公寓"},
+        {name:"三明治（群名就叫这个）", desc:"可配送到各公寓"},
+        {name:"方城烩面", desc:"学五食堂，品鉴过一次还可以"},
+        {name:"擂饭", desc:"外卖挺香"},
+        {name:"熔棠三明治", desc:"外卖，适合减肥人"},
+        {name:"米已成粥", desc:"外卖，清淡且有味道"},
+        {name:"烤冷面*手抓饼", desc:"老河大西门夜市"},
+        {name:"老碗面", desc:"西门出门的店，好吃不贵"},
+        {name:"鸡公煲", desc:"西门顺河公寓附近"}
+      ];
     }
+    if (!Array.isArray(arr)) return [];
+    // 兼容旧数据：字符串条目转为 {name, desc}
+    return arr
+      .map(function (d) {
+        if (typeof d === 'string') {
+          return { name: d.trim(), desc: '' };
+        }
+        return {
+          name: (d && d.name && String(d.name).trim()) || '',
+          desc: (d && d.desc && String(d.desc).trim()) || ''
+        };
+      })
+      .filter(function (d) { return d.name; });
+  } catch (e) {
+    return [];
   }
+}
+
 
   function save() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dishes));
